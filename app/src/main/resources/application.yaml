@@ -1,0 +1,26 @@
+logging:
+  file:
+    path: ./logs # 相对于项目根路径
+    name: ${logging.file.path}/application.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${logging.file.path}/%d{yyyy-MM-dd}.%i.log
+      max-file-size: 32MB
+      max-history: 16 # 单位为天
+  level:
+    org.kagura: debug
+    org.springframework:
+      web.servlet:
+        DispatcherServlet: debug
+        mvc.method.annotation.RequestMappingHandlerMapping: debug
+
+server:
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: talk
+  mvc:
+    problemdetails:
+      enabled: true
