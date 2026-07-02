@@ -33,6 +33,8 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     implementation(libs.spring.boot.starter.webmvc)
     testImplementation(libs.spring.boot.starter.webmvc.test)
+    implementation(libs.spring.boot.starter.security)
+    testImplementation(libs.spring.boot.starter.security.test)
 }
 
 tasks.withType<Test> {

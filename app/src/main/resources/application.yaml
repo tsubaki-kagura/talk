@@ -24,3 +24,5 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  security:
+    login: /auth/login
