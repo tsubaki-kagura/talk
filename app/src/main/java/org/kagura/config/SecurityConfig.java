@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.kagura.result.Result;
 import org.kagura.security.filter.UnamePasswdAuthenticationFilter;
+import org.kagura.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,8 +20,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.ExceptionTranslationFilter;
 import tools.jackson.databind.json.JsonMapper;
@@ -34,24 +35,25 @@ public class SecurityConfig {
     private final JsonMapper jsonMapper;
 
     @Bean
-    public AuthenticationManager authenticationManager() {
-        return new ProviderManager(
-                new DaoAuthenticationProvider(
-                        new InMemoryUserDetailsManager(
-                                User.builder()
-                                        .username("tsubaki")
-                                        .password("{noop}041018")
-                                        .build()
-                        )
-                )
-        );
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B);
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity,
-                                                   AuthenticationManager authenticationManager,
-                                                   @Value("${spring.web.error.path:/error}") String error,
-                                                   @Value("${spring.security.login}") String login
+    public AuthenticationManager authenticationManager(
+            UserService userService, PasswordEncoder passwordEncoder
+    ) {
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userService);
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+        return new ProviderManager(daoAuthenticationProvider);
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity httpSecurity,
+            AuthenticationManager authenticationManager,
+            @Value("${spring.web.error.path:/error}") String error,
+            @Value("${spring.security.login}") String login
     ) {
         return httpSecurity
 

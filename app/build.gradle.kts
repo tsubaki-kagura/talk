@@ -35,6 +35,9 @@ dependencies {
     testImplementation(libs.spring.boot.starter.webmvc.test)
     implementation(libs.spring.boot.starter.security)
     testImplementation(libs.spring.boot.starter.security.test)
+    implementation(libs.spring.boot.starter.data.jpa)
+    testImplementation(libs.spring.boot.starter.data.jpa.test)
+    runtimeOnly(libs.postgresql)
 }
 
 tasks.withType<Test> {

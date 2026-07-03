@@ -26,3 +26,17 @@ spring:
       enabled: true
   security:
     login: /auth/login
+  jpa:
+    open-in-view: false
+    generate-ddl: true
+    properties:
+      hibernate:
+        show-sql: true
+        format_sql: true
+  config:
+    import:
+      - optional:file:.env.local[.properties]
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE}?reWriteBatchedInserts=true
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
