@@ -19,7 +19,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationFilter;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -66,7 +66,7 @@ public class SecurityConfig {
                 // 添加 jwt 认证
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtService),
-                        AuthenticationFilter.class
+                        AuthorizationFilter.class
                 )
 
                 // 拦截配置
@@ -98,6 +98,9 @@ public class SecurityConfig {
 
                 // 禁用请求重定向
                 .requestCache(AbstractHttpConfigurer::disable)
+
+                // 禁用 servlet 增强 api
+                .servletApi(AbstractHttpConfigurer::disable)
 
                 // 禁用默认认证
                 .httpBasic(AbstractHttpConfigurer::disable)
