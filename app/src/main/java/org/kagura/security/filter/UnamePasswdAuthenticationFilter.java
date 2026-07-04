@@ -3,7 +3,7 @@ package org.kagura.security.filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
-import org.kagura.security.AuthenticationHandler;
+import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,7 +26,7 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
             String processesUrl,
             AuthenticationManager authenticationManager,
             JsonMapper jsonMapper,
-            AuthenticationHandler authenticationHandler) {
+            UnamePasswdAuthenticationHandler authenticationHandler) {
         super(processesUrl, authenticationManager);
         this.jsonMapper = jsonMapper;
         this.setAuthenticationFailureHandler(authenticationHandler);

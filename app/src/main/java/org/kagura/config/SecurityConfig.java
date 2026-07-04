@@ -1,8 +1,9 @@
 package org.kagura.config;
 
-import org.kagura.security.AuthenticationHandler;
 import org.kagura.security.filter.JwtAuthenticationFilter;
 import org.kagura.security.filter.UnamePasswdAuthenticationFilter;
+import org.kagura.security.handler.ExceptionAuthenticationHandler;
+import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
 import org.kagura.service.JwtService;
 import org.kagura.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,10 +42,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity httpSecurity,
-            AuthenticationManager authenticationManager,
+            ExceptionAuthenticationHandler exceptionAuthenticationHandler,
             @Value("${spring.security.login}") String login,
+            AuthenticationManager authenticationManager,
             JsonMapper jsonMapper,
-            AuthenticationHandler authenticationHandler,
+            UnamePasswdAuthenticationHandler unamePasswdAuthenticationHandler,
             JwtService jwtService
     ) {
         return httpSecurity
@@ -61,7 +63,7 @@ public class SecurityConfig {
                                 login,
                                 authenticationManager,
                                 jsonMapper,
-                                authenticationHandler
+                                unamePasswdAuthenticationHandler
                         ),
                         ExceptionTranslationFilter.class
                 )
@@ -81,8 +83,8 @@ public class SecurityConfig {
 
                 // 接口异常访问应对
                 .exceptionHandling(security -> security
-                        .authenticationEntryPoint(authenticationHandler) // 请求未经认证
-                        .accessDeniedHandler(authenticationHandler)) // 请求权限不足
+                        .authenticationEntryPoint(exceptionAuthenticationHandler) // 请求未经认证
+                        .accessDeniedHandler(exceptionAuthenticationHandler)) // 请求权限不足
 
                 // 不创建 Session
                 .sessionManagement(security -> security
