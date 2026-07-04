@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
 import org.kagura.security.AuthenticationHandler;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -40,6 +41,10 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
         String requestMethod = request.getMethod();
         if (!HttpMethod.POST.matches(requestMethod)) {
             throw new AuthenticationServiceException("暂不支持该种认证方式：" + requestMethod);
+        }
+        String contentType = request.getContentType();
+        if (!MediaType.APPLICATION_JSON_VALUE.equals(contentType)) {
+            throw new AuthenticationServiceException("暂不支持该种内容类型：" + contentType);
         }
         Authentication authentication = extractAuthentication(request);
         return getAuthenticationManager().authenticate(authentication);
