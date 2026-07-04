@@ -3,6 +3,7 @@ package org.kagura.security.filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
+import org.kagura.security.AuthenticationHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -10,8 +11,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -26,12 +25,11 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
             String processesUrl,
             AuthenticationManager authenticationManager,
             JsonMapper jsonMapper,
-            AuthenticationFailureHandler failureHandler,
-            AuthenticationSuccessHandler successHandler) {
+            AuthenticationHandler authenticationHandler) {
         super(processesUrl, authenticationManager);
         this.jsonMapper = jsonMapper;
-        this.setAuthenticationFailureHandler(failureHandler);
-        this.setAuthenticationSuccessHandler(successHandler);
+        this.setAuthenticationFailureHandler(authenticationHandler);
+        this.setAuthenticationSuccessHandler(authenticationHandler);
     }
 
     @Override // 这一块可以借鉴 UsernamePasswordAuthenticationFilter 的实现
@@ -63,7 +61,7 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
             unauthenticatedToken.setDetails(authenticationDetailsSource.buildDetails(request));
             return unauthenticatedToken;
         } catch (IOException exception) {
-            throw new AuthenticationServiceException("认证信息异常，请检查认证信息是否正确");
+            throw new AuthenticationServiceException("认证信息异常，请检查认证信息是否有误");
         }
     }
 }

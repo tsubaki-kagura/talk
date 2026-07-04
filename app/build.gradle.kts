@@ -38,6 +38,9 @@ dependencies {
     implementation(libs.spring.boot.starter.data.jpa)
     testImplementation(libs.spring.boot.starter.data.jpa.test)
     runtimeOnly(libs.postgresql)
+    implementation(libs.jjwt.api)
+    runtimeOnly(libs.jjwt.impl)
+    runtimeOnly(libs.jjwt.jackson)
 }
 
 tasks.withType<Test> {
