@@ -15,15 +15,16 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Map;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final WebAuthenticationDetailsSource authenticationDetailsSource = new WebAuthenticationDetailsSource();
 
     private static final String AUTH_TYPE = "Bearer ";
 
@@ -40,8 +41,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             String jwt = authorizationHeader.substring(AUTH_TYPE.length());
             try {
-                Map<String, Object> payload = jwtService.parseJwt(jwt);
-                fillSecurityContext(payload.get("uname").toString());
+                String uname = jwtService.parseJwt(jwt).get("uname").toString();
+                fillSecurityContext(exchangeAuthentication(uname, request));
             } catch (JwtException exception) {
                 throw new BadCredentialsException("无效的 jwt，请检查或重新登录以获取新的 jwt");
             }
@@ -49,21 +50,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void fillSecurityContext(String uname) {
-        Authentication authentication = exchangeAuthentication(uname);
+    private void fillSecurityContext(Authentication authentication) {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
     }
 
-    private Authentication exchangeAuthentication(String uname) {
+    private Authentication exchangeAuthentication(String uname, HttpServletRequest request) {
         UserModel userModel = new UserModel();
         userModel.setUsername(uname);
         UsernamePasswordAuthenticationToken authenticatedToken =
                 UsernamePasswordAuthenticationToken.authenticated(
                         userModel, userModel.getPassword(), userModel.getAuthorities()
                 );
-        authenticatedToken.setDetails(null);
+        authenticatedToken.setDetails(authenticationDetailsSource.buildDetails(request));
         return authenticatedToken;
     }
 }

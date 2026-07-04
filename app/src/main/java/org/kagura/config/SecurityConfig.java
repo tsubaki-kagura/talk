@@ -19,7 +19,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.ExceptionTranslationFilter;
+import org.springframework.security.web.authentication.AuthenticationFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
@@ -51,12 +52,6 @@ public class SecurityConfig {
     ) {
         return httpSecurity
 
-                // 添加 jwt 认证
-                .addFilterAfter(
-                        new JwtAuthenticationFilter(jwtService),
-                        ExceptionTranslationFilter.class
-                )
-
                 // 添加自定义用户名密码认证
                 .addFilterAfter(
                         new UnamePasswdAuthenticationFilter(
@@ -65,7 +60,13 @@ public class SecurityConfig {
                                 jsonMapper,
                                 unamePasswdAuthenticationHandler
                         ),
-                        ExceptionTranslationFilter.class
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
+                // 添加 jwt 认证
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtService),
+                        AuthenticationFilter.class
                 )
 
                 // 拦截配置
