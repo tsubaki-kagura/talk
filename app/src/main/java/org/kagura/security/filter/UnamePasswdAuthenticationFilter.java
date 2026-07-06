@@ -3,7 +3,7 @@ package org.kagura.security.filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
-import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
+import org.kagura.security.handler.auth.UnamePasswdAuthenticationHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;

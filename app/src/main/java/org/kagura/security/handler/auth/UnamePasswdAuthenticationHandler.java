@@ -1,4 +1,4 @@
-package org.kagura.security.handler;
+package org.kagura.security.handler.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

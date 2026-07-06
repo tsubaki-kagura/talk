@@ -2,8 +2,10 @@ package org.kagura.config;
 
 import org.kagura.security.filter.JwtAuthenticationFilter;
 import org.kagura.security.filter.UnamePasswdAuthenticationFilter;
-import org.kagura.security.handler.ExceptionAuthenticationHandler;
-import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
+import org.kagura.security.handler.auth.ExceptionAuthenticationHandler;
+import org.kagura.security.oauth2.GithubAuthenticationHandler;
+import org.kagura.security.handler.auth.UnamePasswdAuthenticationHandler;
+import org.kagura.security.oauth2.CookieAuthorizationRequestRepository;
 import org.kagura.service.JwtService;
 import org.kagura.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -97,6 +99,9 @@ public class SecurityConfig {
      * @param unamePasswdAuthenticationHandler，用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
      * @param jwtService jwt 服务，用于组装 JwtAuthenticationFilter
      * @param corsConfigurationSource cors 配置源，用于构建 CorsFilter
+     * @param cookieAuthorizationRequestRepository cookie 认证存储，用于替换默认的 session 认证存储
+     * @param oauth2Redirect oauth2 重定向 url
+     * @param githubAuthenticationHandler github 认证处理器
      * @return SpringSecurity 过滤器链
      */
     @Bean
@@ -107,7 +112,10 @@ public class SecurityConfig {
             AuthenticationManager authenticationManager,
             UnamePasswdAuthenticationHandler unamePasswdAuthenticationHandler,
             JwtService jwtService,
-            CorsConfigurationSource corsConfigurationSource
+            CorsConfigurationSource corsConfigurationSource,
+            CookieAuthorizationRequestRepository cookieAuthorizationRequestRepository,
+            @Value("${spring.security.oauth2.redirect}") String oauth2Redirect,
+            GithubAuthenticationHandler githubAuthenticationHandler
     ) {
         return httpSecurity
 
@@ -135,6 +143,19 @@ public class SecurityConfig {
 
                         // 拦截其它资源请求
                         .anyRequest().authenticated()
+                )
+
+                // oauth2 登录配置
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .baseUri(login) // 由于 url 末尾会自动附加 /{registrationId}，所以可以直接复用普通登录的 url
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository)
+                        )
+                        .redirectionEndpoint(redirect -> redirect
+                                .baseUri(oauth2Redirect + "/*")
+                        )
+                        .successHandler(githubAuthenticationHandler)
+                        .failureHandler(githubAuthenticationHandler)
                 )
 
                 // cors 配置

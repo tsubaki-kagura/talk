@@ -1,9 +1,10 @@
-package org.kagura.security.handler;
+package org.kagura.security.handler.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
 import org.kagura.result.Result;
+import org.kagura.security.handler.BaseWriteHandler;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;

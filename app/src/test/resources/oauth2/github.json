@@ -1,0 +1,24 @@
+{
+  "authorizationUri": "https://github.com/login/oauth/authorize",
+  "grantType": {
+    "value": "authorization_code"
+  },
+  "responseType": {
+    "value": "code"
+  },
+  "clientId": "Ov23lixCcNtESR7F5gSx",
+  "redirectUri": "http://localhost:8080/api/login/oauth2/code/github",
+  "scopes": [
+    "read:user"
+  ],
+  "state": "mAQbQHTmncg6iNncLQCCmD7zfT4xLWEjBcxPOcgw9zI=",
+  "additionalParameters": {
+    "code_challenge": "DTMmh-ZBZgIb0mi15oU8Qpg7iCAwEU-7azcFYHBNqJA",
+    "code_challenge_method": "S256"
+  },
+  "authorizationRequestUri": "https://github.com/login/oauth/authorize?response_type=code&client_id=Ov23lixCcNtESR7F5gSx&scope=read:user&state=mAQbQHTmncg6iNncLQCCmD7zfT4xLWEjBcxPOcgw9zI%3D&redirect_uri=http://localhost:8080/api/login/oauth2/code/github&code_challenge=DTMmh-ZBZgIb0mi15oU8Qpg7iCAwEU-7azcFYHBNqJA&code_challenge_method=S256",
+  "attributes": {
+    "registration_id": "github",
+    "code_verifier": "KNBoTcwNdXRVhkgkLliC9UsIelBHvWzRtefsuHmgwRipPwYXrGSbg2B86Mk-jbIZlGR8kCrSYhCJINVWnGYNfVnzEreoN4gEJEuMVqLOfsbANcBiWMPT9F8VxKRDfkNk"
+  }
+}
