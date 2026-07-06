@@ -19,25 +19,40 @@ import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * 用户名密码认证过滤器
+ */
 public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
-    private final JsonMapper jsonMapper;
-
     public UnamePasswdAuthenticationFilter(
             String processesUrl,
             AuthenticationManager authenticationManager,
-            JsonMapper jsonMapper,
             UnamePasswdAuthenticationHandler authenticationHandler) {
         super(processesUrl, authenticationManager);
-        this.jsonMapper = jsonMapper;
         this.setAuthenticationFailureHandler(authenticationHandler);
         this.setAuthenticationSuccessHandler(authenticationHandler);
     }
 
+    /**
+     * 用户名密码认证逻辑
+     * @param request 请求
+     * @param response 响应
+     * @return 认证成功且待写入安全上下文的认证信息
+     * @throws AuthenticationException 异常
+     */
     @Override // 这一块可以借鉴 UsernamePasswordAuthenticationFilter 的实现
     public @NonNull Authentication attemptAuthentication(
-            HttpServletRequest request,
-            @NonNull HttpServletResponse response
+            @NonNull HttpServletRequest request, @NonNull HttpServletResponse response
     ) throws AuthenticationException {
+        preAuthenticate(request); // 认证预处理
+        Authentication authentication = extractAuthentication(request);
+        return getAuthenticationManager().authenticate(authentication);
+    }
+
+    /**
+     * 认证预处理，判断请求方法和内容类型是否正确
+     * @param request 请求
+     */
+    private void preAuthenticate(HttpServletRequest request) {
         String requestMethod = request.getMethod();
         if (!HttpMethod.POST.matches(requestMethod)) {
             throw new AuthenticationServiceException("暂不支持该种认证方式：" + requestMethod);
@@ -46,15 +61,19 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
         if (!MediaType.APPLICATION_JSON_VALUE.equals(contentType)) {
             throw new AuthenticationServiceException("暂不支持该种内容类型：" + contentType);
         }
-        Authentication authentication = extractAuthentication(request);
-        return getAuthenticationManager().authenticate(authentication);
     }
 
     // 简单约束一下请求体的字段
     private record UnamePasswdModel(String uname, String passwd) {
     }
 
+    /**
+     * 从请求中提取出认证信息
+     * @param request 请求
+     * @return 认证信息
+     */
     private Authentication extractAuthentication(HttpServletRequest request) {
+        JsonMapper jsonMapper = ((UnamePasswdAuthenticationHandler) getSuccessHandler()).getJsonMapper();
         try (Stream<String> stream = request.getReader().lines()) {
             String requestBodyString = stream.collect(Collectors.joining());
             UnamePasswdModel unamePasswdModel = jsonMapper.readValue(requestBodyString, UnamePasswdModel.class);

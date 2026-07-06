@@ -7,6 +7,7 @@ import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
 import org.kagura.service.JwtService;
 import org.kagura.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,56 +23,109 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import tools.jackson.databind.json.JsonMapper;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * 配置密码编码器
+     * @return 使用 BCrypt 加密算法的密码编码器
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
+        new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B);
         return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B);
     }
 
+    /**
+     * 配置认证管理器，用于注册多个认证提供者
+     * @param userService 用户服务，用于组装 DaoAuthenticationProvider
+     * @param passwordEncoder 密码编码器，用于组装 DaoAuthenticationProvider
+     * @return 认证管理器
+     */
     @Bean
-    public AuthenticationManager authenticationManager(
-            UserService userService, PasswordEncoder passwordEncoder
-    ) {
+    public AuthenticationManager authenticationManager(UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userService);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
         return new ProviderManager(daoAuthenticationProvider);
     }
 
+    /**
+     * 提取配置文件中的 cors 配置
+     * @param origins 允许的主机
+     * @param methods 允许的请求方法
+     */
+    @ConfigurationProperties("spring.security.cors")
+    public record CorsProperties(String origins, String methods) {
+        public List<String> asOrigins() {
+            return Arrays.asList(origins.split(","));
+        }
+
+        public List<String> asMethods() {
+            return Arrays.asList(methods.split(","));
+        }
+    }
+
+    /**
+     * 配置 cors 配置源
+     * @param corsProperties cors 配置
+     * @return cors 配置源
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowedOrigins(corsProperties.asOrigins());
+        corsConfiguration.setAllowedMethods(corsProperties.asMethods());
+        source.registerCorsConfiguration("/**", corsConfiguration);
+        return source;
+    }
+
+    /**
+     * 配置 SpringSecurity 过滤器链
+     * @param httpSecurity 过滤器链生成器
+     * @param exceptionAuthenticationHandler 认证失败/异常处理器
+     * @param login 登录 url，用于组装 UnamePasswdAuthenticationFilter
+     * @param authenticationManager 认证管理器，用于组装 UnamePasswdAuthenticationFilter
+     * @param unamePasswdAuthenticationHandler，用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
+     * @param jwtService jwt 服务，用于组装 JwtAuthenticationFilter
+     * @param corsConfigurationSource cors 配置源，用于构建 CorsFilter
+     * @return SpringSecurity 过滤器链
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity httpSecurity,
             ExceptionAuthenticationHandler exceptionAuthenticationHandler,
             @Value("${spring.security.login}") String login,
             AuthenticationManager authenticationManager,
-            JsonMapper jsonMapper,
             UnamePasswdAuthenticationHandler unamePasswdAuthenticationHandler,
-            JwtService jwtService
+            JwtService jwtService,
+            CorsConfigurationSource corsConfigurationSource
     ) {
         return httpSecurity
 
                 // 添加自定义用户名密码认证
-                .addFilterAfter(
+                .addFilterAt(
                         new UnamePasswdAuthenticationFilter(
                                 login,
                                 authenticationManager,
-                                jsonMapper,
                                 unamePasswdAuthenticationHandler
                         ),
                         UsernamePasswordAuthenticationFilter.class
                 )
 
                 // 添加 jwt 认证
-                .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtService),
-                        AuthorizationFilter.class
-                )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService), AuthorizationFilter.class)
 
-                // 拦截配置
-                .authorizeHttpRequests(registry -> registry
+                // 请求拦截配置
+                .authorizeHttpRequests(auth -> auth
 
                         // 放行默认错误处理端点
                         .requestMatchers("/error").permitAll()
@@ -82,30 +137,32 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // 接口异常访问应对
+                // cors 配置
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
+                // 接口异常访问处理
                 .exceptionHandling(security -> security
                         .authenticationEntryPoint(exceptionAuthenticationHandler) // 请求未经认证
-                        .accessDeniedHandler(exceptionAuthenticationHandler)) // 请求权限不足
+                        .accessDeniedHandler(exceptionAuthenticationHandler) // 请求权限不足
+                )
 
                 // 不创建 Session
-                .sessionManagement(security -> security
+                .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // REST API 不需要 CSRF 防护和“记住我”
+                // 关闭 CSRF 防护和“记住我”
                 .csrf(AbstractHttpConfigurer::disable)
                 .rememberMe(AbstractHttpConfigurer::disable)
 
-                // 禁用请求重定向
+                // 关闭请求重定向和 servlet 增强
                 .requestCache(AbstractHttpConfigurer::disable)
-
-                // 禁用 servlet 增强 api
                 .servletApi(AbstractHttpConfigurer::disable)
 
-                // 禁用默认认证
+                // 关闭默认认证
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // 禁用默认登录/登出
+                // 关闭默认登录/登出
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
 

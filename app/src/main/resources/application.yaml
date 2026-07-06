@@ -21,6 +21,9 @@ server:
 spring:
   application:
     name: talk
+  config:
+    import:
+      - optional:file:.env.local[.properties]
   mvc:
     problemdetails:
       enabled: true
@@ -28,8 +31,17 @@ spring:
     login: /auth/login
     jwt:
       issuer: Kagura
-      secret: ecaMKggYjYw2ozhYfdaRL/0kFxL3oKuBOWot/zQJpR0=
+      secret: ${JWT_SECRET}
       expiration: 3600 # 有效时长，单位为秒
+    cors:
+      origins: ${CORS_HOSTS}
+      methods: ${CORS_METHODS}
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_OAUTH2_CLIENT_ID}
+            client-secret: ${GITHUB_OAUTH2_CLIENT_SECRET}
   jpa:
     open-in-view: false
     generate-ddl: true
@@ -37,9 +49,6 @@ spring:
       hibernate:
         show-sql: true
         format_sql: true
-  config:
-    import:
-      - optional:file:.env.local[.properties]
   datasource:
     url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE}?reWriteBatchedInserts=true
     username: ${DATABASE_USERNAME}

@@ -12,20 +12,34 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * jwt 服务，用于生成/解析 jwt
+ */
 @Service
 @RequiredArgsConstructor
 public class JwtService {
     private final JwtProperties jwtProperties;
 
+    /**
+     * 提取配置文件中的 jwt 配置
+     * @param issuer 签发者
+     * @param secret 密钥
+     * @param expiration 有效时长
+     */
     @ConfigurationProperties("spring.security.jwt")
     public record JwtProperties(String issuer, String secret, Integer expiration) {
     }
 
+    /**
+     * 根据用户信息创建 jwt
+     * @param userModel 用户信息
+     * @return jwt
+     */
     public String createJwt(UserModel userModel) {
         long currentTimeMillis = System.currentTimeMillis();
         return Jwts.builder()
                 .header()
-                .add("typ", "JWT")
+                .add("typ", "JWT") // 添加默认头部
                 .and()
                 .claims(
                         Map.of(
@@ -45,6 +59,11 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * 解析 jwt
+     * @param jwt jwt
+     * @return jwt 负载
+     */
     public Map<String, Object> parseJwt(String jwt) {
         return Jwts.parser()
                 .verifyWith(

@@ -5,6 +5,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(JwtService.JwtProperties.class)
+@EnableConfigurationProperties({
+        JwtService.JwtProperties.class,
+        SecurityConfig.CorsProperties.class
+})
 public class PropertyBindingConfig {
 }

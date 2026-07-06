@@ -2,39 +2,49 @@ package org.kagura.security.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.kagura.result.Result;
-import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
-@RequiredArgsConstructor
-public class BaseAuthenticationHandler
-        implements AuthenticationFailureHandler, AuthenticationEntryPoint {
-    protected final JsonMapper jsonMapper;
+/**
+ * 基础认证处理器
+ */
+public class BaseAuthenticationHandler extends BaseWriteHandler
+        implements AuthenticationSuccessHandler, AuthenticationFailureHandler {
 
-    protected <T> void write(HttpServletResponse response, Result<T> result) throws IOException {
-        response.setCharacterEncoding(StandardCharsets.UTF_8);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        String responseString = jsonMapper.writeValueAsString(result);
-        response.getWriter().write(responseString);
+    protected BaseAuthenticationHandler(JsonMapper jsonMapper) {
+        super(jsonMapper);
     }
 
+    /**
+     * 认证成功处理逻辑
+     * @param request 请求
+     * @param response 响应
+     * @param authentication 异常1
+     * @throws IOException 异常2
+     */
     @Override
-    public void commence(
+    public void onAuthenticationSuccess(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull AuthenticationException authException
+            @NonNull Authentication authentication
     ) throws IOException {
-        onAuthenticationFailure(request, response, authException);
+        write(response, Result.ok(authentication.getPrincipal()));
     }
 
+    /**
+     * 认证失败处理逻辑
+     * @param request 请求
+     * @param response 响应
+     * @param exception 异常1
+     * @throws IOException 异常2
+     */
     @Override
     public void onAuthenticationFailure(
             @NonNull HttpServletRequest request,

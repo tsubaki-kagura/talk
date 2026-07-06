@@ -9,6 +9,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * 最简用户实体
+ * 目前仅有 uid、username 和 password 等必须字段
+ * 权限则固定为 USER
+ */
 @Data
 @Entity
 @Table(name = "users")
