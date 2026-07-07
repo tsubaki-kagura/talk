@@ -2,9 +2,9 @@ package org.kagura.config;
 
 import org.kagura.security.filter.JwtAuthenticationFilter;
 import org.kagura.security.filter.UnamePasswdAuthenticationFilter;
-import org.kagura.security.handler.auth.ExceptionAuthenticationHandler;
+import org.kagura.security.handler.ExceptionAuthenticationHandler;
 import org.kagura.security.oauth2.GithubAuthenticationHandler;
-import org.kagura.security.handler.auth.UnamePasswdAuthenticationHandler;
+import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
 import org.kagura.security.oauth2.CookieAuthorizationRequestRepository;
 import org.kagura.service.JwtService;
 import org.kagura.service.UserService;
@@ -38,6 +38,7 @@ public class SecurityConfig {
 
     /**
      * 配置密码编码器
+     *
      * @return 使用 BCrypt 加密算法的密码编码器
      */
     @Bean
@@ -48,6 +49,7 @@ public class SecurityConfig {
 
     /**
      * 配置认证管理器，用于注册多个认证提供者
+     *
      * @param userService 用户服务，用于组装 DaoAuthenticationProvider
      * @param passwordEncoder 密码编码器，用于组装 DaoAuthenticationProvider
      * @return 认证管理器
@@ -61,6 +63,7 @@ public class SecurityConfig {
 
     /**
      * 提取配置文件中的 cors 配置
+     *
      * @param origins 允许的主机
      * @param methods 允许的请求方法
      */
@@ -77,6 +80,7 @@ public class SecurityConfig {
 
     /**
      * 配置 cors 配置源
+     *
      * @param corsProperties cors 配置
      * @return cors 配置源
      */
@@ -92,11 +96,12 @@ public class SecurityConfig {
 
     /**
      * 配置 SpringSecurity 过滤器链
+     *
      * @param httpSecurity 过滤器链生成器
      * @param exceptionAuthenticationHandler 认证失败/异常处理器
      * @param login 登录 url，用于组装 UnamePasswdAuthenticationFilter
      * @param authenticationManager 认证管理器，用于组装 UnamePasswdAuthenticationFilter
-     * @param unamePasswdAuthenticationHandler，用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
+     * @param unamePasswdAuthenticationHandler 用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
      * @param jwtService jwt 服务，用于组装 JwtAuthenticationFilter
      * @param corsConfigurationSource cors 配置源，用于构建 CorsFilter
      * @param cookieAuthorizationRequestRepository cookie 认证存储，用于替换默认的 session 认证存储
@@ -147,13 +152,19 @@ public class SecurityConfig {
 
                 // oauth2 登录配置
                 .oauth2Login(oauth2 -> oauth2
+
+                        // 授权端点配置
                         .authorizationEndpoint(auth -> auth
                                 .baseUri(login) // 由于 url 末尾会自动附加 /{registrationId}，所以可以直接复用普通登录的 url
                                 .authorizationRequestRepository(cookieAuthorizationRequestRepository)
                         )
+
+                        // 回调端点配置
                         .redirectionEndpoint(redirect -> redirect
                                 .baseUri(oauth2Redirect + "/*")
                         )
+
+                        // 授权成功/失败处理器
                         .successHandler(githubAuthenticationHandler)
                         .failureHandler(githubAuthenticationHandler)
                 )

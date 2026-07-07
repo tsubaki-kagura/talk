@@ -3,7 +3,7 @@ package org.kagura.security.filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
-import org.kagura.security.handler.auth.UnamePasswdAuthenticationHandler;
+import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,12 +34,13 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
 
     /**
      * 用户名密码认证逻辑
+     *
      * @param request 请求
      * @param response 响应
      * @return 认证成功且待写入安全上下文的认证信息
-     * @throws AuthenticationException 异常
+     * @throws AuthenticationException 认证异常
      */
-    @Override // 这一块可以借鉴 UsernamePasswordAuthenticationFilter 的实现
+    @Override // 这一块可以借鉴原生 UsernamePasswordAuthenticationFilter 的实现
     public @NonNull Authentication attemptAuthentication(
             @NonNull HttpServletRequest request, @NonNull HttpServletResponse response
     ) throws AuthenticationException {
@@ -50,6 +51,7 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
 
     /**
      * 认证预处理，判断请求方法和内容类型是否正确
+     *
      * @param request 请求
      */
     private void preAuthenticate(HttpServletRequest request) {
@@ -63,12 +65,17 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
         }
     }
 
-    // 简单约束一下请求体的字段
+    /**
+     * 进行用户名密码认证需要提交的认证信息
+     * @param uname 用户名
+     * @param passwd 密码
+     */
     private record UnamePasswdModel(String uname, String passwd) {
     }
 
     /**
      * 从请求中提取出认证信息
+     *
      * @param request 请求
      * @return 认证信息
      */

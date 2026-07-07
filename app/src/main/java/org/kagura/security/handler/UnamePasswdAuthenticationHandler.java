@@ -1,4 +1,4 @@
-package org.kagura.security.handler.auth;
+package org.kagura.security.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,7 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
@@ -28,32 +27,32 @@ public class UnamePasswdAuthenticationHandler extends BaseAuthenticationHandler 
     }
 
     /**
-     * 用户名密码认证成功处理逻辑
+     * 认证成功处理逻辑
+     *
      * @param request 请求
      * @param response 响应
-     * @param authentication 异常1
-     * @throws IOException 异常2
+     * @param authentication 认证信息
      */
     @Override
     public void onAuthenticationSuccess(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull Authentication authentication
-    ) throws IOException {
+    ) {
         UserModel userModel = (UserModel) authentication.getPrincipal();
-        if (Objects.nonNull(userModel)) {
-            write(response, Result.ok(
-                    Map.of(
-                            "uid", userModel.getUid(),
-                            "uname", userModel.getUsername(),
-                            "jwt", jwtService.createJwt(userModel)
-                    )
-            ));
-        } else {
+        if (Objects.isNull(userModel)) {
             onAuthenticationFailure(
                     request, response,
                     new AuthenticationServiceException("用户名或密码有误")
             );
+            return;
         }
+        write(response, Result.ok(
+                Map.of(
+                        "uid", userModel.getUid(),
+                        "uname", userModel.getUsername(),
+                        "jwt", jwtService.createJwt(userModel)
+                )
+        ));
     }
 }
