@@ -1,4 +1,4 @@
-package org.kagura.security.oauth2;
+package org.kagura.security.oauth2.repository;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -6,9 +6,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -18,26 +22,46 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 基于 cookie 的 OAuth2 认证信息仓储，用于替换默认的基于 session 的 OAuth2 认证信息仓储
+ */
 @Component
 @RequiredArgsConstructor
-public class CookieAuthorizationRequestRepository
+public class CookieOAuth2AuthorizationRequestRepository
         implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
     private final JsonMapper jsonMapper;
+    private final CookieProperties cookieProperties;
+
+    @ConfigurationProperties("spring.security.oauth2.cookie")
+    public record CookieProperties(String name, Integer age) {
+    }
 
     @Override
     public @Nullable OAuth2AuthorizationRequest loadAuthorizationRequest(@NonNull HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, "state");
-        if (Objects.isNull(cookie)) {
+        Cookie cookie = WebUtils.getCookie(request, cookieProperties.name);
+        if (Objects.isNull(cookie) || !StringUtils.hasText(cookie.getValue())) {
             return null;
         }
+
+        // 将该 base64 字符串解码为普通字符串
         byte[] bytes = cookie.getValue().getBytes(StandardCharsets.UTF_8);
-        byte[] decodedBase64 = Base64.getDecoder().decode(bytes);
-        return exchangeAuthorizationRequest(decodedBase64);
+        byte[] decodedBytes = Base64.getDecoder().decode(bytes);
+
+        // 然后 json 反序列化为 OAuth2AuthorizationRequest 实例
+        return exchangeAuthorizationRequest(decodedBytes);
     }
 
+    /**
+     * 将字节流反序列化为 OAuth2AuthorizationRequest 实例
+     *
+     * @param bytes 字节流
+     * @return OAuth2AuthorizationRequest 实例
+     */
     private OAuth2AuthorizationRequest exchangeAuthorizationRequest(byte[] bytes) {
         Map<String, Object> map = jsonMapper.readValue(bytes, new TypeReference<>() {
         });
+
+        // 由于 OAuth2AuthorizationRequest 实例未提供无参构造，所以只能一点一点的把数据塞进去
         return OAuth2AuthorizationRequest.authorizationCode()
                 .authorizationUri(map.get("authorizationUri").toString())
                 .clientId(map.get("clientId").toString())
@@ -59,16 +83,7 @@ public class CookieAuthorizationRequestRepository
                 .build();
     }
 
-    private Cookie buildStateCookie(HttpServletRequest request, String state) {
-        Cookie cookie = new Cookie("state", state);
-        cookie.setPath(request.getContextPath());
-        cookie.setHttpOnly(true);
-        cookie.setSecure(request.isSecure());
-        cookie.setMaxAge(300);
-        return cookie;
-    }
-
-    @Override
+    @Override // 具体实现可借鉴原生 HttpSessionOAuth2AuthorizationRequestRepository
     public void saveAuthorizationRequest(
             @Nullable OAuth2AuthorizationRequest authorizationRequest,
             @NonNull HttpServletRequest request,
@@ -78,10 +93,34 @@ public class CookieAuthorizationRequestRepository
             removeAuthorizationRequest(request, response);
             return;
         }
-        byte[] bytes = jsonMapper.writeValueAsString(authorizationRequest).getBytes(StandardCharsets.UTF_8);
-        byte[] encodedBase64 = Base64.getEncoder().encode(bytes);
-        Cookie cookie = buildStateCookie(request, new String(encodedBase64, StandardCharsets.UTF_8));
-        response.addCookie(cookie);
+
+        // json 序列化认证信息，并将其编码为 base64 字符串
+        byte[] bytes = jsonMapper.writeValueAsBytes(authorizationRequest);
+        byte[] encodedBytes = Base64.getEncoder().encode(bytes);
+        String state = new String(encodedBytes, StandardCharsets.UTF_8);
+
+        // 将该 base64 字符串作为 cookie 发送给客户端保存
+        String cookie = buildStateCookie(request, state, cookieProperties.age);
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie);
+    }
+
+    /**
+     * 构建存放 state 参数的 cookie
+     *
+     * @param request 请求，用于提取基路径和是否为安全请求
+     * @param state   state 参数的值
+     * @param age     cookie 的存活时间
+     * @return cookie 的值
+     */
+    private String buildStateCookie(HttpServletRequest request, String state, Integer age) {
+        return ResponseCookie.from(cookieProperties.name)
+                .value(state)
+                .path(request.getContextPath())
+                .httpOnly(true)
+                .secure(request.isSecure())
+                .maxAge(age)
+                .build()
+                .toString();
     }
 
     @Override
@@ -89,7 +128,8 @@ public class CookieAuthorizationRequestRepository
             @NonNull HttpServletRequest request, @NonNull HttpServletResponse response
     ) {
         OAuth2AuthorizationRequest oAuth2AuthorizationRequest = loadAuthorizationRequest(request);
-        response.addCookie(buildStateCookie(request, null));
+        String cookie = buildStateCookie(request, "", 0);
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie);
         return oAuth2AuthorizationRequest;
     }
 }

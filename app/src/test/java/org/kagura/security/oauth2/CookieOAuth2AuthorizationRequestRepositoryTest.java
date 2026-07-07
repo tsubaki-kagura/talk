@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Slf4j
 @JsonTest
-class CookieAuthorizationRequestRepositoryTest {
+class CookieOAuth2AuthorizationRequestRepositoryTest {
 
     @Autowired
     JsonMapper jsonMapper;

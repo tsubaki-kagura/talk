@@ -38,6 +38,9 @@ spring:
       methods: ${CORS_METHODS}
     oauth2:
       redirect: /auth/callback
+      cookie: # 出于无状态考虑，state 参数通过 cookie 存储
+        name: oauth2_state
+        age: 300 # 有效时长，单位为秒
       client:
         registration:
           github:
