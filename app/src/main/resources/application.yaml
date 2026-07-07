@@ -31,7 +31,7 @@ spring:
     login: /auth/login
     jwt:
       issuer: Kagura
-      secret: ${JWT_SECRET}
+      keypath: ${JWT_KEYPATH}
       expiration: 3600 # 有效时长，单位为秒
     cors:
       origins: ${CORS_HOSTS}

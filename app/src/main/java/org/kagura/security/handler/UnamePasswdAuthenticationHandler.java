@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -47,12 +48,16 @@ public class UnamePasswdAuthenticationHandler extends BaseAuthenticationHandler 
             );
             return;
         }
-        write(response, Result.ok(
-                Map.of(
-                        "uid", userModel.getUid(),
-                        "uname", userModel.getUsername(),
-                        "jwt", jwtService.createJwt(userModel)
-                )
-        ));
+
+        // 构建创建 jwt 所需要的负载
+        Map<String, Object> payload = Map.of(
+                "uid", userModel.getUid(),
+                "uname", userModel.getUsername()
+        );
+
+        // 在该负载的基础上添加 jwt 字段，再一并发送给客户端，可有效减少重复构建
+        HashMap<String, Object> data = new HashMap<>(payload);
+        data.put("jwt", jwtService.createJwt(payload));
+        write(response, Result.ok(data));
     }
 }

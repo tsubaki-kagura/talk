@@ -7,6 +7,8 @@
 *.ear
 *.zip
 *.tar.gz
+*.tgz
+*.7z
 
 # JVM crash logs
 hs_err_pid*
@@ -46,10 +48,13 @@ logs/
 !.env.example
 
 # Profiles
-application-local.yml
-application-local.yaml
-application-dev.yml
-application-dev.yaml
+application-*.yml
+application-*.yaml
+!application-example.yml
+!application-example.yaml
+
+# Keys
+*.pem
 
 # mac OS
 .DS_Store
