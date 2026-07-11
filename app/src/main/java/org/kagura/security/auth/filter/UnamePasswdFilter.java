@@ -25,11 +25,11 @@ import java.util.stream.Stream;
 public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
     public UnamePasswdFilter(
             String processesUrl, AuthenticationManager authenticationManager,
-            UnamePasswdHandler authenticationHandler
+            UnamePasswdHandler unamePasswdHandler
     ) {
         super(processesUrl, authenticationManager);
-        this.setAuthenticationFailureHandler(authenticationHandler);
-        this.setAuthenticationSuccessHandler(authenticationHandler);
+        this.setAuthenticationFailureHandler(unamePasswdHandler);
+        this.setAuthenticationSuccessHandler(unamePasswdHandler);
     }
 
     /**

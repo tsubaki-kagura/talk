@@ -24,7 +24,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -37,7 +36,7 @@ import java.util.List;
 public class SecurityConfig {
 
     /**
-     * 配置密码编码器
+     * 构建密码编码器
      *
      * @return 使用 BCrypt 加密算法的密码编码器
      */
@@ -47,53 +46,26 @@ public class SecurityConfig {
     }
 
     /**
-     * 配置认证管理器，用于注册多个认证提供者
+     * 构建全局认证管理器
      *
-     * @param userService 用户服务，用于组装 DaoAuthenticationProvider
-     * @param passwordEncoder 密码编码器，用于组装 DaoAuthenticationProvider
-     * @return 认证管理器
+     * @param userService 用户服务
+     * @param passwordEncoder 密码编码器
      */
     @Bean
     public AuthenticationManager authenticationManager(UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userService);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
-        return new ProviderManager(daoAuthenticationProvider);
+        return new ProviderManager(List.of(daoAuthenticationProvider));
     }
 
     /**
-     * 提取配置文件中的 cors 配置
-     *
-     * @param origin 允许的主机
-     * @param methods 允许的请求方法
-     */
-    @ConfigurationProperties("spring.security.cors")
-    public record CorsProperties(String origin, String methods) {
-    }
-
-    /**
-     * 配置 cors 配置源
-     *
-     * @param corsProperties cors 配置
-     * @return cors 配置源
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of(corsProperties.origin));
-        corsConfiguration.setAllowedMethods(Arrays.asList(corsProperties.methods.split(",")));
-        source.registerCorsConfiguration("/**", corsConfiguration);
-        return source;
-    }
-
-    /**
-     * 配置 SpringSecurity 过滤器链
+     * 构建 SpringSecurity 过滤器链
      *
      * @param httpSecurity 过滤器链生成器
-     * @param exceptionAuthenticationHandler 认证失败/异常处理器
+     * @param exceptionHandler 认证失败/异常处理器
      * @param login 登录 url，用于组装 UnamePasswdAuthenticationFilter
-     * @param authenticationManager 认证管理器，用于组装 UnamePasswdAuthenticationFilter
-     * @param unamePasswdAuthenticationHandler 用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
+     * @param authenticationManager 全局认证管理器
+     * @param unamePasswdHandler 用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
      * @param jwtService jwt 服务，用于组装 JwtAuthenticationFilter
      * @param corsConfigurationSource cors 配置源，用于构建 CorsFilter
      * @param cookieRequestRepository cookie 认证存储，用于替换默认的 session 认证存储
@@ -104,10 +76,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity httpSecurity,
-            ExceptionHandler exceptionAuthenticationHandler,
+            ExceptionHandler exceptionHandler,
             @Value("${spring.security.login}") String login,
             AuthenticationManager authenticationManager,
-            UnamePasswdHandler unamePasswdAuthenticationHandler,
+            UnamePasswdHandler unamePasswdHandler,
             JwtService jwtService,
             CorsConfigurationSource corsConfigurationSource,
             CookieRequestRepository cookieRequestRepository,
@@ -118,11 +90,8 @@ public class SecurityConfig {
 
                 // 添加自定义用户名密码认证
                 .addFilterAt(
-                        new UnamePasswdFilter(
-                                login, authenticationManager,
-                                unamePasswdAuthenticationHandler
-                        ),
-                        UsernamePasswordAuthenticationFilter.class
+                        new UnamePasswdFilter(login, authenticationManager, unamePasswdHandler),
+                        AuthorizationFilter.class
                 )
 
                 // 添加 jwt 认证
@@ -160,13 +129,10 @@ public class SecurityConfig {
                         .failureHandler(githubAuthenticationHandler)
                 )
 
-                // cors 配置
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
-
                 // 接口异常访问处理
                 .exceptionHandling(security -> security
-                        .authenticationEntryPoint(exceptionAuthenticationHandler) // 请求未经认证
-                        .accessDeniedHandler(exceptionAuthenticationHandler) // 请求权限不足
+                        .authenticationEntryPoint(exceptionHandler) // 请求未经认证
+                        .accessDeniedHandler(exceptionHandler) // 请求权限不足
                 )
 
                 // 关闭 session
@@ -192,7 +158,42 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
 
+                // cors 配置
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
                 // 构建过滤器链
                 .build();
+    }
+
+    /**
+     * 提取配置文件中的 cors 配置
+     *
+     * @param origins 允许的主机
+     * @param methods 允许的请求方法
+     */
+    @ConfigurationProperties("spring.security.cors")
+    public record CorsProperties(String origins, String methods) {
+        public List<String> split(String string) {
+            return Arrays.asList(string.split(","));
+        }
+    }
+
+    /**
+     * 构建 cors 配置源
+     *
+     * @param corsProperties cors 配置
+     * @return cors 配置源
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+
+        // cors 具体配置
+        corsConfiguration.setAllowedOrigins(corsProperties.split(corsProperties.origins));
+        corsConfiguration.setAllowedMethods(corsProperties.split(corsProperties.methods));
+        corsConfiguration.setAllowedHeaders(List.of("*"));
+        source.registerCorsConfiguration("/**", corsConfiguration);
+        return source;
     }
 }
