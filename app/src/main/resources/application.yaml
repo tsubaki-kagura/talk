@@ -13,6 +13,11 @@ logging:
       web.servlet:
         DispatcherServlet: debug
         mvc.method.annotation.RequestMappingHandlerMapping: debug
+      security.web.DefaultSecurityFilterChain: debug
+      transaction.interceptor.TransactionInterceptor: trace
+    org.hibernate:
+      SQL: debug
+      orm.jdbc.bind: trace
 
 server:
   servlet:
@@ -23,19 +28,19 @@ spring:
     name: talk
   config:
     import:
-      - optional:file:.env.local[.properties]
+      - optional:file:.env.local[.properties] # 模拟环境变量文件读取
   mvc:
     problemdetails:
       enabled: true
   security:
     login: /auth/login
-    jwt:
+    jwt: # 弃用对称密钥签名，采用更安全的非对称密钥签名
       issuer: Kagura
-      keypath: ${JWT_KEYPATH}
+      keypair: jwt
       expiration: 3600 # 有效时长，单位为秒
     cors:
-      origins: ${CORS_HOSTS}
-      methods: ${CORS_METHODS}
+      origin: ${CORS_HOST}
+      methods: GET,POST,PUT,DELETE,OPTIONS
     oauth2:
       redirect: /auth/callback
       cookie: # 出于无状态考虑，state 参数通过 cookie 存储
@@ -49,11 +54,15 @@ spring:
             redirect-uri: "{baseUrl}${spring.security.oauth2.redirect}/{registrationId}"
   jpa:
     open-in-view: false
-    generate-ddl: true
+    hibernate:
+      ddl-auto: update
     properties:
       hibernate:
-        show-sql: true
         format_sql: true
+        order_updates: true
+        jdbc:
+          batch_size: 50 # 建议设置为实体 id 字段 @SequenceGenerator 注解 allocationSize 属性的值
+          batch_versioned_data: true
   datasource:
     url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE}?reWriteBatchedInserts=true
     username: ${DATABASE_USERNAME}

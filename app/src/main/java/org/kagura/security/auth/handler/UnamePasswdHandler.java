@@ -1,4 +1,4 @@
-package org.kagura.security.handler;
+package org.kagura.security.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -6,7 +6,6 @@ import org.jspecify.annotations.NonNull;
 import org.kagura.model.UserModel;
 import org.kagura.result.Result;
 import org.kagura.service.JwtService;
-import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
@@ -19,10 +18,10 @@ import java.util.Objects;
  * 用户名密码认证处理器
  */
 @Component
-public class UnamePasswdAuthenticationHandler extends BaseAuthenticationHandler {
+public class UnamePasswdHandler extends BaseHandler {
     private final JwtService jwtService;
 
-    public UnamePasswdAuthenticationHandler(JsonMapper jsonMapper, JwtService jwtService) {
+    public UnamePasswdHandler(JsonMapper jsonMapper, JwtService jwtService) {
         super(jsonMapper);
         this.jwtService = jwtService;
     }
@@ -40,16 +39,8 @@ public class UnamePasswdAuthenticationHandler extends BaseAuthenticationHandler 
             @NonNull HttpServletResponse response,
             @NonNull Authentication authentication
     ) {
-        UserModel userModel = (UserModel) authentication.getPrincipal();
-        if (Objects.isNull(userModel)) {
-            onAuthenticationFailure(
-                    request, response,
-                    new AuthenticationServiceException("用户名或密码有误")
-            );
-            return;
-        }
-
         // 构建创建 jwt 所需要的负载
+        UserModel userModel = (UserModel) Objects.requireNonNull(authentication.getPrincipal());
         Map<String, Object> payload = Map.of(
                 "uid", userModel.getUid(),
                 "uname", userModel.getUsername()

@@ -1,4 +1,4 @@
-package org.kagura.security.oauth2.repository;
+package org.kagura.security.auth.repository;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,8 +27,7 @@ import java.util.Objects;
  */
 @Component
 @RequiredArgsConstructor
-public class CookieOAuth2AuthorizationRequestRepository
-        implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
+public class CookieRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
     private final JsonMapper jsonMapper;
     private final CookieProperties cookieProperties;
 

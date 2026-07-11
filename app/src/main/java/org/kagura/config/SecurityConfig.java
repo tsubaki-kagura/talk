@@ -1,11 +1,11 @@
 package org.kagura.config;
 
-import org.kagura.security.filter.JwtAuthenticationFilter;
-import org.kagura.security.filter.UnamePasswdAuthenticationFilter;
-import org.kagura.security.handler.ExceptionAuthenticationHandler;
-import org.kagura.security.oauth2.GithubAuthenticationHandler;
-import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
-import org.kagura.security.oauth2.repository.CookieOAuth2AuthorizationRequestRepository;
+import org.kagura.security.auth.filter.JwtFilter;
+import org.kagura.security.auth.filter.UnamePasswdFilter;
+import org.kagura.security.auth.handler.ExceptionHandler;
+import org.kagura.security.auth.handler.GithubHandler;
+import org.kagura.security.auth.handler.UnamePasswdHandler;
+import org.kagura.security.auth.repository.CookieRequestRepository;
 import org.kagura.service.JwtService;
 import org.kagura.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +43,6 @@ public class SecurityConfig {
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B);
         return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B);
     }
 
@@ -64,18 +63,11 @@ public class SecurityConfig {
     /**
      * 提取配置文件中的 cors 配置
      *
-     * @param origins 允许的主机
+     * @param origin 允许的主机
      * @param methods 允许的请求方法
      */
     @ConfigurationProperties("spring.security.cors")
-    public record CorsProperties(String origins, String methods) {
-        public List<String> asOrigins() {
-            return Arrays.asList(origins.split(","));
-        }
-
-        public List<String> asMethods() {
-            return Arrays.asList(methods.split(","));
-        }
+    public record CorsProperties(String origin, String methods) {
     }
 
     /**
@@ -88,8 +80,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(corsProperties.asOrigins());
-        corsConfiguration.setAllowedMethods(corsProperties.asMethods());
+        corsConfiguration.setAllowedOrigins(List.of(corsProperties.origin));
+        corsConfiguration.setAllowedMethods(Arrays.asList(corsProperties.methods.split(",")));
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
     }
@@ -104,7 +96,7 @@ public class SecurityConfig {
      * @param unamePasswdAuthenticationHandler 用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
      * @param jwtService jwt 服务，用于组装 JwtAuthenticationFilter
      * @param corsConfigurationSource cors 配置源，用于构建 CorsFilter
-     * @param cookieOAuth2AuthorizationRequestRepository cookie 认证存储，用于替换默认的 session 认证存储
+     * @param cookieRequestRepository cookie 认证存储，用于替换默认的 session 认证存储
      * @param oauth2Redirect oauth2 重定向 url
      * @param githubAuthenticationHandler github 认证处理器
      * @return SpringSecurity 过滤器链
@@ -112,32 +104,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity httpSecurity,
-            ExceptionAuthenticationHandler exceptionAuthenticationHandler,
+            ExceptionHandler exceptionAuthenticationHandler,
             @Value("${spring.security.login}") String login,
             AuthenticationManager authenticationManager,
-            UnamePasswdAuthenticationHandler unamePasswdAuthenticationHandler,
+            UnamePasswdHandler unamePasswdAuthenticationHandler,
             JwtService jwtService,
             CorsConfigurationSource corsConfigurationSource,
-            CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository,
+            CookieRequestRepository cookieRequestRepository,
             @Value("${spring.security.oauth2.redirect}") String oauth2Redirect,
-            GithubAuthenticationHandler githubAuthenticationHandler
+            GithubHandler githubAuthenticationHandler
     ) {
         return httpSecurity
 
                 // 添加自定义用户名密码认证
                 .addFilterAt(
-                        new UnamePasswdAuthenticationFilter(
-                                login,
-                                authenticationManager,
+                        new UnamePasswdFilter(
+                                login, authenticationManager,
                                 unamePasswdAuthenticationHandler
                         ),
                         UsernamePasswordAuthenticationFilter.class
                 )
 
                 // 添加 jwt 认证
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService), AuthorizationFilter.class)
+                .addFilterBefore(new JwtFilter(jwtService), AuthorizationFilter.class)
 
-                // 请求拦截配置
+                // 请求认证配置
                 .authorizeHttpRequests(auth -> auth
 
                         // 放行默认错误处理端点
@@ -146,7 +137,7 @@ public class SecurityConfig {
                         // 放行 OPTIONS 预检请求
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 拦截其它资源请求
+                        // 拦截除此以外的所有请求
                         .anyRequest().authenticated()
                 )
 
@@ -155,8 +146,8 @@ public class SecurityConfig {
 
                         // 授权端点配置
                         .authorizationEndpoint(auth -> auth
-                                .baseUri(login) // 由于 url 末尾会自动附加 /{registrationId}，所以可以直接复用普通登录的 url
-                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository)
+                                .baseUri(login) // 由于会自动为 url 附加 /{registrationId}，所以可以直接复用普通登录的 url
+                                .authorizationRequestRepository(cookieRequestRepository)
                         )
 
                         // 回调端点配置
@@ -178,14 +169,17 @@ public class SecurityConfig {
                         .accessDeniedHandler(exceptionAuthenticationHandler) // 请求权限不足
                 )
 
-                // 不创建 Session
+                // 关闭 session
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // 关闭 CSRF 防护和“记住我”
+                // 关闭 csrf 防护和“记住我”
                 .csrf(AbstractHttpConfigurer::disable)
                 .rememberMe(AbstractHttpConfigurer::disable)
+
+                // 关闭匿名访问
+                .anonymous(AbstractHttpConfigurer::disable)
 
                 // 关闭请求重定向和 servlet 增强
                 .requestCache(AbstractHttpConfigurer::disable)

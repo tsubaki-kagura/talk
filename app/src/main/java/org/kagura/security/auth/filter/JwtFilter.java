@@ -1,4 +1,4 @@
-package org.kagura.security.filter;
+package org.kagura.security.auth.filter;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -25,7 +25,7 @@ import java.io.IOException;
  * jwt 认证过滤器
  */
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtFilter extends OncePerRequestFilter {
     private final WebAuthenticationDetailsSource authenticationDetailsSource = new WebAuthenticationDetailsSource();
     private static final String AUTH_TYPE = "Bearer ";
 
@@ -33,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * jwt 认证逻辑，当且仅当携带请求头 Authorization 时，才会进行 jwt 认证，否则则直接放行，不进行 jwt 认证
+     *
      * @param request 请求
      * @param response 响应
      * @param filterChain 过滤器链
@@ -64,6 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * 将提供的认证信息写入安全上下文
+     *
      * @param authentication 认证信息
      */
     private void fillSecurityContext(Authentication authentication) {
@@ -74,13 +76,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * 使用用户名交换认证信息
+     *
      * @param uname 用户名
      * @param request 请求对象，以标记认证信息
      * @return 认证信息
      */
     private Authentication exchangeAuthentication(String uname, HttpServletRequest request) {
-        UserModel userModel = new UserModel();
-        userModel.setUsername(uname);
+        UserModel userModel = new UserModel(uname, "******");
         UsernamePasswordAuthenticationToken authenticatedToken =
                 UsernamePasswordAuthenticationToken.authenticated(
                         userModel, userModel.getPassword(), userModel.getAuthorities()

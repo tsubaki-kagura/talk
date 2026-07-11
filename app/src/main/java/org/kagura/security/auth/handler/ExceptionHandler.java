@@ -1,4 +1,4 @@
-package org.kagura.security.handler;
+package org.kagura.security.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,9 +15,9 @@ import tools.jackson.databind.json.JsonMapper;
  * 异常认证处理器
  */
 @Component
-public class ExceptionAuthenticationHandler extends BaseAuthenticationHandler
+public class ExceptionHandler extends BaseHandler
         implements AuthenticationEntryPoint, AccessDeniedHandler {
-    public ExceptionAuthenticationHandler(JsonMapper jsonMapper) {
+    public ExceptionHandler(JsonMapper jsonMapper) {
         super(jsonMapper);
     }
 

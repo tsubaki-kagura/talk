@@ -1,4 +1,4 @@
-package org.kagura.security.oauth2;
+package org.kagura.security.auth.repository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Slf4j
 @JsonTest
-class CookieOAuth2AuthorizationRequestRepositoryTest {
+class CookieRequestRepositoryTest {
 
     @Autowired
     JsonMapper jsonMapper;
@@ -48,6 +48,7 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
                             })
                     )
                     .build();
+
             // 由于 OAuth2AuthorizationRequest 实例的 toString 方法没有被重写，无法查看其内部的详细信息
             // 所以这里通过 json 序列化，查看 OAuth2AuthorizationRequest 实例内部的详细信息
             log.debug("OAuth2 Authorization: {}", jsonMapper.writeValueAsString(authorizationRequest));

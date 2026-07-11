@@ -43,7 +43,6 @@ logs/
 *.log
 
 # Environment Variables
-.env
 .env.*
 !.env.example
 
@@ -54,6 +53,7 @@ application-*.yaml
 !application-example.yaml
 
 # Keys
+keys/
 *.pem
 
 # mac OS

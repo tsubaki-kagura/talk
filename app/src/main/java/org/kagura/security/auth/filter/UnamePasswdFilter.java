@@ -1,9 +1,9 @@
-package org.kagura.security.filter;
+package org.kagura.security.auth.filter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
-import org.kagura.security.handler.UnamePasswdAuthenticationHandler;
+import org.kagura.security.auth.handler.UnamePasswdHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,11 +22,11 @@ import java.util.stream.Stream;
 /**
  * 用户名密码认证过滤器
  */
-public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
-    public UnamePasswdAuthenticationFilter(
-            String processesUrl,
-            AuthenticationManager authenticationManager,
-            UnamePasswdAuthenticationHandler authenticationHandler) {
+public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
+    public UnamePasswdFilter(
+            String processesUrl, AuthenticationManager authenticationManager,
+            UnamePasswdHandler authenticationHandler
+    ) {
         super(processesUrl, authenticationManager);
         this.setAuthenticationFailureHandler(authenticationHandler);
         this.setAuthenticationSuccessHandler(authenticationHandler);
@@ -67,6 +67,7 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
 
     /**
      * 进行用户名密码认证需要提交的认证信息
+     *
      * @param uname 用户名
      * @param passwd 密码
      */
@@ -80,7 +81,7 @@ public class UnamePasswdAuthenticationFilter extends AbstractAuthenticationProce
      * @return 认证信息
      */
     private Authentication extractAuthentication(HttpServletRequest request) {
-        JsonMapper jsonMapper = ((UnamePasswdAuthenticationHandler) getSuccessHandler()).getJsonMapper();
+        JsonMapper jsonMapper = ((UnamePasswdHandler) getSuccessHandler()).getJsonMapper();
         try (Stream<String> stream = request.getReader().lines()) {
             String requestBodyString = stream.collect(Collectors.joining());
             UnamePasswdModel unamePasswdModel = jsonMapper.readValue(requestBodyString, UnamePasswdModel.class);
