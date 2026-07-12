@@ -24,6 +24,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -91,7 +92,7 @@ public class SecurityConfig {
                 // 添加自定义用户名密码认证
                 .addFilterAt(
                         new UnamePasswdFilter(login, authenticationManager, unamePasswdHandler),
-                        AuthorizationFilter.class
+                        UsernamePasswordAuthenticationFilter.class
                 )
 
                 // 添加 jwt 认证
@@ -193,6 +194,7 @@ public class SecurityConfig {
         corsConfiguration.setAllowedOrigins(corsProperties.split(corsProperties.origins));
         corsConfiguration.setAllowedMethods(corsProperties.split(corsProperties.methods));
         corsConfiguration.setAllowedHeaders(List.of("*"));
+        corsConfiguration.setAllowCredentials(true);
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
     }

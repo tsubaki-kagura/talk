@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
 import org.kagura.result.Result;
+import org.kagura.service.JwtService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -17,8 +18,8 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class ExceptionHandler extends BaseHandler
         implements AuthenticationEntryPoint, AccessDeniedHandler {
-    public ExceptionHandler(JsonMapper jsonMapper) {
-        super(jsonMapper);
+    public ExceptionHandler(JsonMapper jsonMapper, JwtService jwtService) {
+        super(jsonMapper, jwtService);
     }
 
     /**

@@ -1,36 +1,31 @@
 package org.kagura.security.auth.handler;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NonNull;
-import org.kagura.result.Result;
+import org.kagura.model.UserModel;
+import org.kagura.service.JwtService;
+import org.kagura.service.OAuth2UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
-@Slf4j
+/**
+ * Github 授权认证处理器
+ */
 @Component
 public class GithubHandler extends BaseHandler {
+    private final OAuth2UserService oAuth2UserService;
 
-    public GithubHandler(JsonMapper jsonMapper) {
-        super(jsonMapper);
+    public GithubHandler(JsonMapper jsonMapper, JwtService jwtService, OAuth2UserService oAuth2UserService) {
+        super(jsonMapper, jwtService);
+        this.oAuth2UserService = oAuth2UserService;
     }
 
-    /**
-     * 认证成功处理逻辑
-     *
-     * @param request 请求
-     * @param response 响应
-     * @param authentication 认证信息
-     */
     @Override
-    public void onAuthenticationSuccess(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull Authentication authentication
-    ) {
-        write(response, Result.ok((OAuth2AuthenticationToken) authentication));
+    protected UserModel extractUserModel(Authentication authentication) {
+        OAuth2AuthenticationToken authenticationToken = (OAuth2AuthenticationToken) authentication;
+        return oAuth2UserService.searchUser(
+                authenticationToken.getAuthorizedClientRegistrationId(),
+                authenticationToken.getName()
+        );
     }
 }

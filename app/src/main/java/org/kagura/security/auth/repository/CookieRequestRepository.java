@@ -1,5 +1,6 @@
 package org.kagura.security.auth.repository;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +40,8 @@ public class CookieRequestRepository implements AuthorizationRequestRepository<O
     public @Nullable OAuth2AuthorizationRequest loadAuthorizationRequest(@NonNull HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, cookieProperties.name);
         if (Objects.isNull(cookie) || !StringUtils.hasText(cookie.getValue())) {
+
+            // 由于 HttpSessionOAuth2AuthorizationRequestRepository 中是直接返回的 null，所以这里也返回 null
             return null;
         }
 
@@ -57,29 +60,36 @@ public class CookieRequestRepository implements AuthorizationRequestRepository<O
      * @return OAuth2AuthorizationRequest 实例
      */
     private OAuth2AuthorizationRequest exchangeAuthorizationRequest(byte[] bytes) {
-        Map<String, Object> map = jsonMapper.readValue(bytes, new TypeReference<>() {
-        });
+        try {
+            Map<String, Object> map = jsonMapper.readValue(bytes, new TypeReference<>() {
+            });
 
-        // 由于 OAuth2AuthorizationRequest 实例未提供无参构造，所以只能一点一点的把数据塞进去
-        return OAuth2AuthorizationRequest.authorizationCode()
-                .authorizationUri(map.get("authorizationUri").toString())
-                .clientId(map.get("clientId").toString())
-                .redirectUri(map.get("redirectUri").toString())
-                .scopes(
-                        jsonMapper.convertValue(map.get("scopes"), new TypeReference<>() {
-                        })
-                )
-                .state(map.get("state").toString())
-                .additionalParameters(
-                        jsonMapper.convertValue(map.get("additionalParameters"), new TypeReference<Map<String, Object>>() {
-                        })
-                )
-                .authorizationRequestUri(map.get("authorizationRequestUri").toString())
-                .attributes(
-                        jsonMapper.convertValue(map.get("attributes"), new TypeReference<Map<String, Object>>() {
-                        })
-                )
-                .build();
+            // 由于 OAuth2AuthorizationRequest 实例未提供无参构造，无法直接反序列化，所以只能一点一点的把数据塞进去
+            return OAuth2AuthorizationRequest.authorizationCode()
+                    .authorizationUri(map.get("authorizationUri").toString())
+                    .clientId(map.get("clientId").toString())
+                    .redirectUri(map.get("redirectUri").toString())
+                    .scopes(
+                            jsonMapper.convertValue(map.get("scopes"), new TypeReference<>() {
+                            })
+                    )
+                    .state(map.get("state").toString())
+                    .additionalParameters(
+                            jsonMapper.convertValue(
+                                    map.get("additionalParameters"),
+                                    new TypeReference<Map<String, Object>>() {
+                                    }
+                            )
+                    )
+                    .authorizationRequestUri(map.get("authorizationRequestUri").toString())
+                    .attributes(
+                            jsonMapper.convertValue(map.get("attributes"), new TypeReference<Map<String, Object>>() {
+                            })
+                    )
+                    .build();
+        } catch (JwtException exception) {
+            return null;
+        }
     }
 
     @Override // 具体实现可借鉴原生 HttpSessionOAuth2AuthorizationRequestRepository

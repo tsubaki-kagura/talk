@@ -1,6 +1,7 @@
 package org.kagura.security;
 
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,7 @@ import java.nio.charset.StandardCharsets;
  */
 @Slf4j
 @Getter
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class BaseWriter {
     protected final JsonMapper jsonMapper;
 
