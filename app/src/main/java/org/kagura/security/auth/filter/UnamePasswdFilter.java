@@ -3,6 +3,7 @@ package org.kagura.security.auth.filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
+import org.kagura.domain.request.UnamePasswdLoginRequest;
 import org.kagura.security.auth.handler.UnamePasswdHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -66,15 +67,6 @@ public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
     }
 
     /**
-     * 进行用户名密码认证需要提交的认证信息
-     *
-     * @param uname 用户名
-     * @param passwd 密码
-     */
-    private record UnamePasswdModel(String uname, String passwd) {
-    }
-
-    /**
      * 从请求中提取出认证信息
      *
      * @param request 请求
@@ -84,12 +76,12 @@ public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
         JsonMapper jsonMapper = ((UnamePasswdHandler) getSuccessHandler()).getJsonMapper();
         try (Stream<String> stream = request.getReader().lines()) {
             String requestBodyString = stream.collect(Collectors.joining());
-            UnamePasswdModel unamePasswdModel = jsonMapper.readValue(requestBodyString, UnamePasswdModel.class);
-            if (!StringUtils.hasText(unamePasswdModel.uname) || !StringUtils.hasText(unamePasswdModel.passwd)) {
+            UnamePasswdLoginRequest loginDTO = jsonMapper.readValue(requestBodyString, UnamePasswdLoginRequest.class);
+            if (!StringUtils.hasText(loginDTO.uname()) || !StringUtils.hasText(loginDTO.passwd())) {
                 throw new AuthenticationServiceException("请确保用户名和密码均已填写");
             }
             UsernamePasswordAuthenticationToken unauthenticatedToken =
-                    UsernamePasswordAuthenticationToken.unauthenticated(unamePasswdModel.uname, unamePasswdModel.passwd);
+                    UsernamePasswordAuthenticationToken.unauthenticated(loginDTO.uname(), loginDTO.passwd());
             unauthenticatedToken.setDetails(authenticationDetailsSource.buildDetails(request));
             return unauthenticatedToken;
         } catch (IOException exception) {

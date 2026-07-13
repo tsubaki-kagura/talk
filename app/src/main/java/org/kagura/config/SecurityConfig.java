@@ -104,6 +104,9 @@ public class SecurityConfig {
                         // 放行默认错误处理端点
                         .requestMatchers("/error").permitAll()
 
+                        // 放行注册端点和验证码端点
+                        .requestMatchers(HttpMethod.POST, "/auth/code", "/auth/register").permitAll()
+
                         // 放行 OPTIONS 预检请求
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
