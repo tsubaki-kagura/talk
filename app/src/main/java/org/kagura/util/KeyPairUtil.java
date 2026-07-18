@@ -14,6 +14,9 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
+/**
+ * Ed25519 密钥对工具类，提供密钥对的生成和加载功能
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class KeyPairUtil {
     private static final String KEYPAIR_STORE_PATH = "keys";
@@ -44,7 +47,7 @@ public class KeyPairUtil {
             String publicKeyPath = keypairPath + ED2519 + PUBLIC_KEY_POSTFIX;
             Files.writeString(Paths.get(publicKeyPath), Jwks.json(publicJwk));
         } catch (IOException exception) {
-            throw new RuntimeException("ed25519 密钥对 " + keypair + " 保存失败...", exception);
+            throw new RuntimeException("Ed25519 密钥对 " + keypair + " 保存失败...", exception);
         }
     }
 
@@ -70,7 +73,7 @@ public class KeyPairUtil {
 
             return new KeyPair(publicKey, privateKey);
         } catch (IOException exception) {
-            throw new RuntimeException("ed25519 密钥对" + keypair + "加载失败...", exception);
+            throw new RuntimeException("Ed25519 密钥对 " + keypair + " 加载失败...", exception);
         }
     }
 }

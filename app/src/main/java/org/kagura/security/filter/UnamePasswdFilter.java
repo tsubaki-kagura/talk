@@ -1,9 +1,9 @@
-package org.kagura.security.auth.filter;
+package org.kagura.security.filter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
-import org.kagura.security.auth.handler.UnamePasswdHandler;
+import org.kagura.security.handler.UnamePasswdHandler;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * 用户名密码认证过滤器
+ * 用户名密码认证过滤器，拦截指定登录路径的 POST 请求，从 JSON 请求体中提取用户名密码进行认证
  */
 public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
     public UnamePasswdFilter(
@@ -33,28 +33,17 @@ public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
     }
 
     /**
-     * 用户名密码认证逻辑
+     * 校验请求方法与 Content-Type，从请求体中提取认证信息后交由 {@link AuthenticationManager} 认证
      *
      * @param request 请求
      * @param response 响应
-     * @return 认证成功且待写入安全上下文的认证信息
+     * @return 认证成功后的认证信息
      * @throws AuthenticationException 认证异常
      */
-    @Override // 这一块可以借鉴原生 UsernamePasswordAuthenticationFilter 的实现
+    @Override
     public @NonNull Authentication attemptAuthentication(
             @NonNull HttpServletRequest request, @NonNull HttpServletResponse response
     ) throws AuthenticationException {
-        preAuthenticate(request); // 认证预处理
-        Authentication authentication = extractAuthentication(request);
-        return getAuthenticationManager().authenticate(authentication);
-    }
-
-    /**
-     * 认证预处理，判断请求方法和内容类型是否正确
-     *
-     * @param request 请求
-     */
-    private void preAuthenticate(HttpServletRequest request) {
         String requestMethod = request.getMethod();
         if (!HttpMethod.POST.matches(requestMethod)) {
             throw new AuthenticationServiceException("暂不支持该种认证方式：" + requestMethod);
@@ -63,10 +52,12 @@ public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
         if (!MediaType.APPLICATION_JSON_VALUE.equals(contentType)) {
             throw new AuthenticationServiceException("暂不支持该种内容类型：" + contentType);
         }
+        Authentication authentication = extractAuthentication(request);
+        return getAuthenticationManager().authenticate(authentication);
     }
 
     /**
-     * 进行用户名密码认证需要提交的认证信息
+     * 用户名密码认证请求体模型
      *
      * @param uname 用户名
      * @param passwd 密码
@@ -75,10 +66,10 @@ public class UnamePasswdFilter extends AbstractAuthenticationProcessingFilter {
     }
 
     /**
-     * 从请求中提取出认证信息
+     * 从 JSON 请求体中解析用户名密码，构建未认证的 {@link UsernamePasswordAuthenticationToken}
      *
      * @param request 请求
-     * @return 认证信息
+     * @return 未认证的认证信息
      */
     private Authentication extractAuthentication(HttpServletRequest request) {
         JsonMapper jsonMapper = ((UnamePasswdHandler) getSuccessHandler()).getJsonMapper();

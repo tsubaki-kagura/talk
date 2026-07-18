@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
 
     /**
-     * 测试是否能正常访问 api
+     * 连通性测试接口
+     *
      * @return 测试响应
      */
     @GetMapping("/test")

@@ -1,4 +1,4 @@
-package org.kagura.security.auth.repository;
+package org.kagura.security.repository;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 基于 cookie 的 OAuth2 认证信息仓储，用于替换默认的基于 session 的 OAuth2 认证信息仓储
+ * 基于 Cookie 的 OAuth2 授权请求存储，将序列化后的授权请求 Base64 编码存入 Cookie，替代默认的 Session 存储
  */
 @Component
 @RequiredArgsConstructor
@@ -32,10 +32,22 @@ public class CookieRequestRepository implements AuthorizationRequestRepository<O
     private final JsonMapper jsonMapper;
     private final CookieProperties cookieProperties;
 
+    /**
+     * 提取配置文件中的 cookie 配置
+     *
+     * @param name cookie 名称
+     * @param age cookie 有效时长
+     */
     @ConfigurationProperties("spring.security.oauth2.cookie")
     public record CookieProperties(String name, Integer age) {
     }
 
+    /**
+     * 从 Cookie 中加载已保存的授权请求，Base64 解码后反序列化为 {@link OAuth2AuthorizationRequest}
+     *
+     * @param request 请求
+     * @return 授权请求，未找到时返回 {@code null}
+     */
     @Override
     public @Nullable OAuth2AuthorizationRequest loadAuthorizationRequest(@NonNull HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, cookieProperties.name);
@@ -92,7 +104,14 @@ public class CookieRequestRepository implements AuthorizationRequestRepository<O
         }
     }
 
-    @Override // 具体实现可借鉴原生 HttpSessionOAuth2AuthorizationRequestRepository
+    /**
+     * 保存授权请求，序列化为 JSON 后 Base64 编码存入 Cookie
+     *
+     * @param authorizationRequest 授权请求，为 {@code null} 时移除 Cookie
+     * @param request 请求
+     * @param response 响应
+     */
+    @Override
     public void saveAuthorizationRequest(
             @Nullable OAuth2AuthorizationRequest authorizationRequest,
             @NonNull HttpServletRequest request,
@@ -117,8 +136,8 @@ public class CookieRequestRepository implements AuthorizationRequestRepository<O
      * 构建存放 state 参数的 cookie
      *
      * @param request 请求，用于提取基路径和是否为安全请求
-     * @param state   state 参数的值
-     * @param age     cookie 的存活时间
+     * @param state state 参数的值
+     * @param age cookie 的存活时间
      * @return cookie 的值
      */
     private String buildStateCookie(HttpServletRequest request, String state, Integer age) {
@@ -132,6 +151,13 @@ public class CookieRequestRepository implements AuthorizationRequestRepository<O
                 .toString();
     }
 
+    /**
+     * 移除授权请求，加载后通过设置同名过期 Cookie 清除
+     *
+     * @param request 请求
+     * @param response 响应
+     * @return 已移除的授权请求
+     */
     @Override
     public @Nullable OAuth2AuthorizationRequest removeAuthorizationRequest(
             @NonNull HttpServletRequest request, @NonNull HttpServletResponse response

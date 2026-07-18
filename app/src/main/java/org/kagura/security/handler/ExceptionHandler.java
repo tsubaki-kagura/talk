@@ -1,4 +1,4 @@
-package org.kagura.security.auth.handler;
+package org.kagura.security.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 异常认证处理器
+ * 认证/授权异常处理器，处理未认证请求与权限不足请求
  */
 @Component
 public class ExceptionHandler extends BaseHandler
@@ -23,11 +23,11 @@ public class ExceptionHandler extends BaseHandler
     }
 
     /**
-     * 未经认证/认证失败处理逻辑
+     * 未认证请求处理逻辑，委托给 {@link #onAuthenticationFailure}
      *
      * @param request 请求
      * @param response 响应
-     * @param authException 认证失败异常
+     * @param authException 认证异常
      */
     @Override
     public void commence(

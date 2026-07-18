@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * jwt 服务，用于生成/解析 jwt
+ * JWT 服务，使用 EdDSA 算法对 JWT 进行签名和验证
  */
 @Service
 @RequiredArgsConstructor
@@ -21,6 +21,9 @@ public class JwtService {
     private final JwtProperties jwtProperties;
     private KeyPair keyPair;
 
+    /**
+     * 初始化 Ed25519 密钥对
+     */
     @PostConstruct
     public void initKeyPair() {
         keyPair = KeyPairUtil.loadEd25519KeyPair(jwtProperties.keypair);
@@ -38,10 +41,10 @@ public class JwtService {
     }
 
     /**
-     * 根据负载创建 jwt
+     * 使用 EdDSA 私钥签名生成 JWT
      *
      * @param payload 负载
-     * @return jwt
+     * @return JWT 字符串
      */
     public String createJwt(Map<String, Object> payload) {
         long currentTimeMillis = System.currentTimeMillis();
@@ -59,10 +62,10 @@ public class JwtService {
     }
 
     /**
-     * 解析 jwt
+     * 使用 EdDSA 公钥验证并解析 JWT
      *
-     * @param jwt jwt
-     * @return jwt 负载
+     * @param jwt JWT 字符串
+     * @return JWT 负载
      */
     public Map<String, Object> parseJwt(String jwt) {
         return Jwts.parser()

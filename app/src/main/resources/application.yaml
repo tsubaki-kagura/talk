@@ -42,7 +42,7 @@ spring:
       origins: ${CORS_HOSTS}
       methods: GET,POST,PUT,DELETE,OPTIONS
     oauth2:
-      redirect: /auth/callback
+      redirect: /auth/redirect
       cookie: # 出于无状态考虑，state 参数通过 cookie 存储
         name: oauth2_state
         age: 300 # 有效时长，单位为秒
@@ -67,3 +67,9 @@ spring:
     url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE}?reWriteBatchedInserts=true
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}

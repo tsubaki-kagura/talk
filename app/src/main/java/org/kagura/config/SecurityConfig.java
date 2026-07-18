@@ -1,11 +1,11 @@
 package org.kagura.config;
 
-import org.kagura.security.auth.filter.JwtFilter;
-import org.kagura.security.auth.filter.UnamePasswdFilter;
-import org.kagura.security.auth.handler.ExceptionHandler;
-import org.kagura.security.auth.handler.GithubHandler;
-import org.kagura.security.auth.handler.UnamePasswdHandler;
-import org.kagura.security.auth.repository.CookieRequestRepository;
+import org.kagura.security.filter.JwtFilter;
+import org.kagura.security.filter.UnamePasswdFilter;
+import org.kagura.security.handler.ExceptionHandler;
+import org.kagura.security.handler.GithubHandler;
+import org.kagura.security.handler.UnamePasswdHandler;
+import org.kagura.security.repository.CookieRequestRepository;
 import org.kagura.service.JwtService;
 import org.kagura.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +29,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,20 +39,36 @@ import java.util.List;
 public class SecurityConfig {
 
     /**
-     * 构建密码编码器
+     * 构建强随机数生成器 {@link SecureRandom#getInstanceStrong}，作为 BCrypt 加盐的熵源
      *
-     * @return 使用 BCrypt 加密算法的密码编码器
+     * @return 安全随机生成器
      */
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B);
+    public SecureRandom secureRandom() {
+        try {
+            return SecureRandom.getInstanceStrong();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new RuntimeException("SecureRandom 实例生成失败", exception);
+        }
     }
 
     /**
-     * 构建全局认证管理器
+     * 构建 BCrypt 密码编码器
+     *
+     * @param secureRandom 加盐熵源
+     * @return 密码编码器
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder(SecureRandom secureRandom) {
+        return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B, secureRandom);
+    }
+
+    /**
+     * 构建认证管理器，使用 {@link DaoAuthenticationProvider} 进行用户名密码认证
      *
      * @param userService 用户服务
      * @param passwordEncoder 密码编码器
+     * @return 认证管理器
      */
     @Bean
     public AuthenticationManager authenticationManager(UserService userService, PasswordEncoder passwordEncoder) {
@@ -60,19 +78,19 @@ public class SecurityConfig {
     }
 
     /**
-     * 构建 SpringSecurity 过滤器链
+     * 构建安全过滤器链
      *
-     * @param httpSecurity 过滤器链生成器
-     * @param exceptionHandler 认证失败/异常处理器
-     * @param login 登录 url，用于组装 UnamePasswdAuthenticationFilter
-     * @param authenticationManager 全局认证管理器
-     * @param unamePasswdHandler 用户名密码认证处理器，用于组装 UnamePasswdAuthenticationFilter
-     * @param jwtService jwt 服务，用于组装 JwtAuthenticationFilter
-     * @param corsConfigurationSource cors 配置源，用于构建 CorsFilter
-     * @param cookieRequestRepository cookie 认证存储，用于替换默认的 session 认证存储
-     * @param oauth2Redirect oauth2 重定向 url
-     * @param githubAuthenticationHandler github 认证处理器
-     * @return SpringSecurity 过滤器链
+     * @param httpSecurity 过滤器链构建器
+     * @param exceptionHandler 认证异常/权限不足处理器
+     * @param login 登录端点路径
+     * @param authenticationManager 认证管理器
+     * @param unamePasswdHandler 用户名密码认证处理器
+     * @param jwtService JWT 服务，用于构建 {@link JwtFilter}
+     * @param corsConfigurationSource CORS 配置源
+     * @param cookieRequestRepository OAuth2 Cookie 授权请求存储
+     * @param redirect OAuth2 回调端点路径
+     * @param githubHandler GitHub OAuth2 认证处理器
+     * @return 安全过滤器链
      */
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -84,8 +102,8 @@ public class SecurityConfig {
             JwtService jwtService,
             CorsConfigurationSource corsConfigurationSource,
             CookieRequestRepository cookieRequestRepository,
-            @Value("${spring.security.oauth2.redirect}") String oauth2Redirect,
-            GithubHandler githubAuthenticationHandler
+            @Value("${spring.security.oauth2.redirect}") String redirect,
+            GithubHandler githubHandler
     ) {
         return httpSecurity
 
@@ -99,10 +117,13 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtFilter(jwtService), AuthorizationFilter.class)
 
                 // 请求认证配置
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(authorization -> authorization
 
                         // 放行默认错误处理端点
                         .requestMatchers("/error").permitAll()
+
+                        // 放行验证码生成端点
+                        .requestMatchers(HttpMethod.POST, "/auth/code").permitAll()
 
                         // 放行 OPTIONS 预检请求
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -115,23 +136,23 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
 
                         // 授权端点配置
-                        .authorizationEndpoint(auth -> auth
+                        .authorizationEndpoint(endpoint -> endpoint
                                 .baseUri(login) // 由于会自动为 url 附加 /{registrationId}，所以可以直接复用普通登录的 url
                                 .authorizationRequestRepository(cookieRequestRepository)
                         )
 
                         // 回调端点配置
-                        .redirectionEndpoint(redirect -> redirect
-                                .baseUri(oauth2Redirect + "/*")
+                        .redirectionEndpoint(endpoint -> endpoint
+                                .baseUri(redirect + "/*")
                         )
 
                         // 授权成功/失败处理器
-                        .successHandler(githubAuthenticationHandler)
-                        .failureHandler(githubAuthenticationHandler)
+                        .successHandler(githubHandler)
+                        .failureHandler(githubHandler)
                 )
 
                 // 接口异常访问处理
-                .exceptionHandling(security -> security
+                .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(exceptionHandler) // 请求未经认证
                         .accessDeniedHandler(exceptionHandler) // 请求权限不足
                 )
@@ -175,7 +196,9 @@ public class SecurityConfig {
     @ConfigurationProperties("spring.security.cors")
     public record CorsProperties(String origins, String methods) {
         public List<String> split(String string) {
-            return Arrays.asList(string.split(","));
+            return Arrays.stream(string.split(","))
+                    .map(String::trim)
+                    .toList();
         }
     }
 

@@ -4,12 +4,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.http.HttpStatus;
 
 /**
- * 统一响应实体
- * @param code 状态码
- * @param message 响应消息
- * @param data 响应数据
- * @param timestamp 毫秒时间戳
- * @param <T> 响应数据类型，Void 表示无响应数据
+ * 统一 API 响应体，包含状态码、消息、数据和时间戳。
+ * 通过静态工厂方法创建常见响应，{@link JsonInclude} 确保为 {@code null} 的字段不出现在序列化结果中。
+ *
+ * @param <T> 数据类型
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Result<T>(Integer code, String message, T data, Long timestamp) {

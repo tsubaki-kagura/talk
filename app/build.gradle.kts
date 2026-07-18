@@ -13,7 +13,7 @@ plugins {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
+    implementation(libs.spring.boot.starter.data.redis)
+    testImplementation(libs.spring.boot.starter.data.redis.test)
 }
 
 tasks.withType<Test> {
