@@ -46,5 +46,14 @@ dependencies {
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        jvmArgs = listOf(
+            *jvmArgs.toTypedArray(),
+            "-javaagent:${
+                configurations["testRuntimeClasspath"]
+                    .single { it.name.contains("mockito-core") }
+                    .absolutePath
+            }"
+        )
+    }
 }
