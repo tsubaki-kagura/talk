@@ -143,7 +143,7 @@ public class SecurityConfig {
 
                         // 回调端点配置
                         .redirectionEndpoint(endpoint -> endpoint
-                                .baseUri(redirect + "/*")
+                                .baseUri(String.join("/", redirect, "*"))
                         )
 
                         // 授权成功/失败处理器

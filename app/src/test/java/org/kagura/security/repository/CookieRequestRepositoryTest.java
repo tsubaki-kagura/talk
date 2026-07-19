@@ -1,9 +1,7 @@
-package org.kagura.security.auth.repository;
+package org.kagura.security.repository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -13,17 +11,14 @@ import java.io.InputStream;
 import java.util.Map;
 
 @Slf4j
-@JsonTest
 class CookieRequestRepositoryTest {
-
-    @Autowired
-    JsonMapper jsonMapper;
 
     @Test
     void loadAuthorizationRequestTest() throws IOException {
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("oauth2/github.json")) {
 
             // 将 json 字符串反序列化为一个 Map 集合
+            JsonMapper jsonMapper = new JsonMapper();
             Map<String, Object> map = jsonMapper.readValue(inputStream, new TypeReference<>() {
             });
 
@@ -51,7 +46,7 @@ class CookieRequestRepositoryTest {
 
             // 由于 OAuth2AuthorizationRequest 实例的 toString 方法没有被重写，无法查看其内部的详细信息
             // 所以这里通过 json 序列化，查看 OAuth2AuthorizationRequest 实例内部的详细信息
-            log.debug("OAuth2 Authorization: {}", jsonMapper.writeValueAsString(authorizationRequest));
+            log.info("OAuth2 Authorization: {}", jsonMapper.writeValueAsString(authorizationRequest));
         }
     }
 }
